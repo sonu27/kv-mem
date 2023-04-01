@@ -3,6 +3,7 @@ package store_test
 import (
 	"github.com/stretchr/testify/assert"
 	"kv-mem/internal/store"
+	"sync"
 	"testing"
 )
 
@@ -40,4 +41,18 @@ func TestGet_nonexistent_key(t *testing.T) {
 	s := store.New(10, 10)
 	_, err := s.Get("foo")
 	assert.ErrorIs(t, err, store.ErrNotFound)
+}
+
+func TestSet_concurrency(t *testing.T) {
+	var wg sync.WaitGroup
+	defer wg.Wait()
+	s := store.New(10, 10)
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err := s.Set("foo", "bar")
+			assert.Nil(t, err)
+		}()
+	}
 }

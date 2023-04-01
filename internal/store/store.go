@@ -3,6 +3,7 @@ package store
 import (
 	"errors"
 	"fmt"
+	"sync"
 )
 
 var (
@@ -24,6 +25,7 @@ type Store struct {
 	maxKeyLen int
 	maxValLen int
 	data      map[string]string
+	mu        sync.Mutex
 }
 
 // Set stores the given value under the given key.
@@ -36,6 +38,9 @@ func (s *Store) Set(key, value string) error {
 		return fmt.Errorf("%w: value: %s", ErrorMaxValLen, value)
 	}
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.data[key] = value
 	return nil
 }
@@ -43,6 +48,9 @@ func (s *Store) Set(key, value string) error {
 // Get returns the value stored under the given key.
 // If the key does not exist, it returns an error.
 func (s *Store) Get(key string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if _, ok := s.data[key]; !ok {
 		return "", fmt.Errorf("%w: key: %s", ErrNotFound, key)
 	}
