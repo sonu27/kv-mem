@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	ErrNotFound    = errors.New("not found")
-	ErrorMaxKeyLen = errors.New("max key length exceeded")
-	ErrorMaxValLen = errors.New("max val length exceeded")
+	ErrNotFound  = errors.New("key not found")
+	ErrMaxKeyLen = errors.New("max key length exceeded")
+	ErrMaxValLen = errors.New("max val length exceeded")
 )
 
 func New(maxKeyLen, maxValLen int) *Store {
@@ -31,11 +31,11 @@ type Store struct {
 // Set stores the given value under the given key.
 func (s *Store) Set(key, value string) error {
 	if len(key) > s.maxKeyLen {
-		return fmt.Errorf("%w: key: %s", ErrorMaxKeyLen, key)
+		return fmt.Errorf("%w: key: %s", ErrMaxKeyLen, key)
 	}
 
 	if len(value) > s.maxValLen {
-		return fmt.Errorf("%w: value: %s", ErrorMaxValLen, value)
+		return fmt.Errorf("%w: value: %s", ErrMaxValLen, value)
 	}
 
 	s.mu.Lock()
@@ -52,7 +52,7 @@ func (s *Store) Get(key string) (string, error) {
 	defer s.mu.Unlock()
 
 	if _, ok := s.data[key]; !ok {
-		return "", fmt.Errorf("%w: key: %s", ErrNotFound, key)
+		return "", fmt.Errorf("%w: %s", ErrNotFound, key)
 	}
 	return s.data[key], nil
 }

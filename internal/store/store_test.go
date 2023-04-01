@@ -10,13 +10,13 @@ import (
 func TestSet_max_key_len_exceeded(t *testing.T) {
 	s := store.New(5, 10)
 	err := s.Set("123456", "bar")
-	assert.ErrorIs(t, err, store.ErrorMaxKeyLen)
+	assert.ErrorIs(t, err, store.ErrMaxKeyLen)
 }
 
 func TestSet_max_val_len_exceeded(t *testing.T) {
 	s := store.New(5, 9)
 	err := s.Set("foo", "0123456789")
-	assert.ErrorIs(t, err, store.ErrorMaxValLen)
+	assert.ErrorIs(t, err, store.ErrMaxValLen)
 }
 func TestSetAndGet_success(t *testing.T) {
 	s := store.New(10, 10)
