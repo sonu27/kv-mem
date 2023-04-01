@@ -26,5 +26,7 @@ func TestSetAndGet_overwrite_value(t *testing.T) {
 }
 
 func TestGet_nonexistent_key(t *testing.T) {
-	t.Skip("TODO: implement me")
+	s := store.New()
+	_, err := s.Get("foo")
+	assert.ErrorIs(t, err, store.ErrNotFound)
 }
