@@ -15,7 +15,7 @@ import (
 
 func TestServer_GetValue(t *testing.T) {
 	db := store.New(10, 10)
-	if err := db.Set("key", "value"); err != nil {
+	if _, err := db.Set("key", "value", ""); err != nil {
 		require.Nil(t, err)
 	}
 
@@ -54,6 +54,25 @@ func TestServer_SetValue(t *testing.T) {
 
 	assert.Equal(t, http.StatusNoContent, res.StatusCode)
 	assert.Equal(t, "", string(body))
+	assert.Equal(t, res.Header.Get("Etag"), store.Hash(val))
+}
+
+func TestServer_SetValue_etag_mismatch(t *testing.T) {
+	db := store.New(10, 10)
+	srv := server.New("8080", db, 11)
+	ts := httptest.NewServer(srv.Handler)
+	defer ts.Close()
+
+	val := "value"
+	req, err := http.NewRequest(http.MethodPut, ts.URL+"/store/key", strings.NewReader(val))
+	require.Nil(t, err)
+
+	req.Header.Set("If-Match", "mismatch")
+
+	res, err := hc.Do(req)
+	require.Nil(t, err)
+
+	assert.Equal(t, http.StatusPreconditionFailed, res.StatusCode)
 }
 
 var hc = http.Client{Timeout: 2 * time.Second}

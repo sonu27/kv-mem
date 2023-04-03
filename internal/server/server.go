@@ -46,13 +46,14 @@ func (s *server) GetValue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) PutValue(w http.ResponseWriter, r *http.Request) {
-	key := chi.URLParam(r, "key")
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
 			log.Println(err)
 		}
 	}(r.Body)
+
+	key := chi.URLParam(r, "key")
 	val := r.Body
 
 	b, err := io.ReadAll(val)
@@ -61,14 +62,21 @@ func (s *server) PutValue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.store.Set(key, string(b)); err != nil {
-		if errors.Is(err, store.ErrMaxKeyLen) || errors.Is(err, store.ErrMaxValLen) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
+	inETag := r.Header.Get("If-Match")
+	etag, err := s.store.Set(key, string(b), inETag)
+	if errors.Is(err, store.ErrETagMismatch) {
+		http.Error(w, err.Error(), http.StatusPreconditionFailed)
+		return
+	}
+	if errors.Is(err, store.ErrMaxKeyLen) || errors.Is(err, store.ErrMaxValLen) {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	w.Header().Set("ETag", etag)
 	w.WriteHeader(http.StatusNoContent)
 }
