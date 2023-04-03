@@ -19,7 +19,7 @@ func TestServer_GetValue(t *testing.T) {
 		require.Nil(t, err)
 	}
 
-	srv := server.New("8080", db)
+	srv := server.New("8080", db, 11)
 	ts := httptest.NewServer(srv.Handler)
 	defer ts.Close()
 
@@ -38,7 +38,7 @@ func TestServer_GetValue(t *testing.T) {
 
 func TestServer_SetValue(t *testing.T) {
 	db := store.New(10, 10)
-	srv := server.New("8080", db)
+	srv := server.New("8080", db, 11)
 	ts := httptest.NewServer(srv.Handler)
 	defer ts.Close()
 
@@ -73,6 +73,22 @@ func TestServer_SetValue_etag_mismatch(t *testing.T) {
 	require.Nil(t, err)
 
 	assert.Equal(t, http.StatusPreconditionFailed, res.StatusCode)
+}
+
+func TestServer_exceeds_max_bytes(t *testing.T) {
+	db := store.New(11, 11)
+	_, _ = db.Set("a", "b", "")
+	srv := server.New("8080", db, 10)
+	ts := httptest.NewServer(srv.Handler)
+	defer ts.Close()
+
+	val := "01234567891"
+	req, err := http.NewRequest(http.MethodPut, ts.URL+"/store/key", strings.NewReader(val))
+
+	res, err := hc.Do(req)
+	require.Nil(t, err)
+
+	assert.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
 }
 
 var hc = http.Client{Timeout: 2 * time.Second}

@@ -9,8 +9,11 @@ import (
 	"net/http"
 )
 
-func New(port string, store *store.Store) http.Server {
-	s := server{store: store}
+func New(port string, store *store.Store, maxBodySize int64) http.Server {
+	s := server{
+		store:       store,
+		maxBodySize: maxBodySize,
+	}
 	r := chi.NewRouter()
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(""))
@@ -27,7 +30,8 @@ func New(port string, store *store.Store) http.Server {
 }
 
 type server struct {
-	store *store.Store
+	store       *store.Store
+	maxBodySize int64
 }
 
 func (s *server) GetValue(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +60,12 @@ func (s *server) PutValue(w http.ResponseWriter, r *http.Request) {
 	key := chi.URLParam(r, "key")
 	val := r.Body
 
-	b, err := io.ReadAll(val)
+	rc := http.MaxBytesReader(w, val, s.maxBodySize)
+	b, err := io.ReadAll(rc)
+	if errors.As(err, new(*http.MaxBytesError)) {
+		http.Error(w, err.Error(), http.StatusRequestEntityTooLarge)
+		return
+	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
