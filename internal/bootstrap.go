@@ -9,7 +9,7 @@ import (
 func Bootstrap(port string) error {
 	kvStore := store.New(100, 100)
 
-	srv := server.New(port, kvStore)
+	srv := server.New(port, kvStore, 10000)
 
 	log.Printf("server started on http://localhost:%s", port)
 	if err := srv.ListenAndServe(); err != nil {
